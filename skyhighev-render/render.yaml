@@ -13,9 +13,10 @@ services:
     envVars:
       - key: NODE_VERSION
         value: "20"
-      # corepack lets the Node image pick up the pnpm version pinned in package.json
+      # pnpm 10 is required (catalog: refs + minimumReleaseAge); pinned in package.json's
+      # "packageManager" field too so corepack picks it up automatically.
       - key: PNPM_VERSION
-        value: "9"
+        value: "10.26.1"
       # ── App secrets — set the actual values in the Render dashboard ──────
       - key: DATABASE_URL
         sync: false
@@ -33,7 +34,7 @@ services:
     # The API server runs its TS source directly via `tsx` — no compile.
     buildCommand: |
       corepack enable
-      corepack prepare pnpm@9 --activate
+      corepack prepare pnpm@10.26.1 --activate
       pnpm install --frozen-lockfile=false
       pnpm run build:render
 
