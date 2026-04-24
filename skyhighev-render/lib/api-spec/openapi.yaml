@@ -1,0 +1,464 @@
+openapi: 3.1.0
+info:
+  title: Api
+  version: 0.1.0
+  description: Discord Tool API Control Panel
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: dashboard
+    description: Dashboard statistics and overview
+  - name: workers
+    description: Worker key management
+  - name: tokens
+    description: Token management
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /dashboard/stats:
+    get:
+      operationId: getDashboardStats
+      tags: [dashboard]
+      summary: Get overall system stats
+      parameters:
+        - name: x-admin-key
+          in: header
+          required: true
+          schema:
+            type: string
+        - name: x-api-key
+          in: header
+          required: true
+          schema:
+            type: string
+        - name: x-totp-code
+          in: header
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Dashboard stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardStats"
+        "401":
+          description: Unauthorized
+
+  /workers/list:
+    get:
+      operationId: listWorkers
+      tags: [workers]
+      summary: List all workers
+      parameters:
+        - name: x-admin-key
+          in: header
+          required: true
+          schema:
+            type: string
+        - name: x-api-key
+          in: header
+          required: true
+          schema:
+            type: string
+        - name: x-totp-code
+          in: header
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of workers
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkerListResponse"
+
+  /workers/create-key:
+    post:
+      operationId: createWorkerKey
+      tags: [workers]
+      summary: Create or renew a worker key
+      parameters:
+        - name: x-admin-key
+          in: header
+          required: true
+          schema:
+            type: string
+        - name: x-api-key
+          in: header
+          required: true
+          schema:
+            type: string
+        - name: x-totp-code
+          in: header
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateWorkerKeyRequest"
+      responses:
+        "200":
+          description: Worker key created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkerKeyResponse"
+
+  /workers/delete-key:
+    delete:
+      operationId: deleteWorkerKey
+      tags: [workers]
+      summary: Lock a worker key
+      parameters:
+        - name: x-admin-key
+          in: header
+          required: true
+          schema:
+            type: string
+        - name: x-api-key
+          in: header
+          required: true
+          schema:
+            type: string
+        - name: x-totp-code
+          in: header
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                discordId:
+                  type: string
+              required: [discordId]
+      responses:
+        "200":
+          description: Worker key locked
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /workers/leaderboard:
+    get:
+      operationId: getLeaderboard
+      tags: [workers]
+      summary: Get worker leaderboard
+      parameters:
+        - name: x-api-key
+          in: header
+          required: true
+          schema:
+            type: string
+        - name: x-totp-code
+          in: header
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Leaderboard
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LeaderboardResponse"
+
+  /tokens/fetch:
+    get:
+      operationId: fetchTokens
+      tags: [tokens]
+      summary: Fetch tokens with optional filters
+      parameters:
+        - name: x-admin-key
+          in: header
+          required: true
+          schema:
+            type: string
+        - name: x-api-key
+          in: header
+          required: true
+          schema:
+            type: string
+        - name: x-totp-code
+          in: header
+          required: true
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: workerKey
+          in: query
+          schema:
+            type: string
+        - name: discordId
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Token list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenListResponse"
+
+  /logs/stream:
+    get:
+      operationId: streamLogs
+      tags: [dashboard]
+      summary: Server-sent events stream of live API activity logs
+      parameters:
+        - name: x-api-key
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: x-totp-code
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: SSE stream
+          content:
+            text/event-stream:
+              schema:
+                type: string
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required: [status]
+
+    DashboardStats:
+      type: object
+      properties:
+        totalWorkers:
+          type: integer
+        activeWorkers:
+          type: integer
+        lockedWorkers:
+          type: integer
+        totalTokens:
+          type: integer
+        validTokens:
+          type: integer
+        lockedTokens:
+          type: integer
+        invalidTokens:
+          type: integer
+        tokensToday:
+          type: integer
+        validToday:
+          type: integer
+        unlockRateToday:
+          type: number
+        unlockRateAllTime:
+          type: number
+      required:
+        - totalWorkers
+        - activeWorkers
+        - lockedWorkers
+        - totalTokens
+        - validTokens
+        - lockedTokens
+        - invalidTokens
+        - tokensToday
+        - validToday
+        - unlockRateToday
+        - unlockRateAllTime
+
+    WorkerEntry:
+      type: object
+      properties:
+        id:
+          type: integer
+        discordId:
+          type: string
+        discordUsername:
+          type: string
+        workerKey:
+          type: string
+        status:
+          type: string
+        expiresAt:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+        tokensGenerated:
+          type: integer
+        tokensValid:
+          type: integer
+        unlockRate:
+          type: number
+      required:
+        - id
+        - discordId
+        - discordUsername
+        - workerKey
+        - status
+        - createdAt
+        - tokensGenerated
+        - tokensValid
+        - unlockRate
+
+    WorkerListResponse:
+      type: object
+      properties:
+        workers:
+          type: array
+          items:
+            $ref: "#/components/schemas/WorkerEntry"
+      required: [workers]
+
+    CreateWorkerKeyRequest:
+      type: object
+      properties:
+        discordId:
+          type: string
+        discordUsername:
+          type: string
+        durationDays:
+          type: integer
+          nullable: true
+      required: [discordId, discordUsername]
+
+    WorkerKeyResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        worker:
+          $ref: "#/components/schemas/WorkerEntry"
+      required: [success, worker]
+
+    LeaderboardEntry:
+      type: object
+      properties:
+        rank:
+          type: integer
+        discordUsername:
+          type: string
+        discordId:
+          type: string
+        totalGenerated:
+          type: integer
+        totalValid:
+          type: integer
+        totalLocked:
+          type: integer
+        totalInvalid:
+          type: integer
+        unlockRate:
+          type: number
+      required:
+        - rank
+        - discordUsername
+        - discordId
+        - totalGenerated
+        - totalValid
+        - totalLocked
+        - totalInvalid
+        - unlockRate
+
+    LeaderboardResponse:
+      type: object
+      properties:
+        leaderboard:
+          type: array
+          items:
+            $ref: "#/components/schemas/LeaderboardEntry"
+      required: [leaderboard]
+
+    TokenEntry:
+      type: object
+      properties:
+        id:
+          type: integer
+        token:
+          type: string
+        email:
+          type: string
+          nullable: true
+        status:
+          type: string
+        workerKey:
+          type: string
+          nullable: true
+        discordUsername:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+        checkedAt:
+          type: string
+          nullable: true
+      required: [id, token, status, createdAt]
+
+    TokenListResponse:
+      type: object
+      properties:
+        tokens:
+          type: array
+          items:
+            $ref: "#/components/schemas/TokenEntry"
+        count:
+          type: integer
+      required: [tokens, count]
+
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+      required: [success]
+
+    LogEntry:
+      type: object
+      properties:
+        id:
+          type: string
+        level:
+          type: string
+        message:
+          type: string
+        timestamp:
+          type: string
+        meta:
+          type: object
+          nullable: true
+      required: [id, level, message, timestamp]

@@ -1,0 +1,44 @@
+# SkyHighEV — single Render service hosting both the dashboard and the API
+# Connect this repo on render.com → "New + → Blueprint" → pick this file.
+services:
+  - type: web
+    name: skyhighev
+    runtime: node
+    plan: free
+    region: oregon
+    branch: main
+    autoDeploy: true
+
+    # Render needs Node 20+ for our build chain
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      # corepack lets the Node image pick up the pnpm version pinned in package.json
+      - key: PNPM_VERSION
+        value: "9"
+      # ── App secrets — set the actual values in the Render dashboard ──────
+      - key: DATABASE_URL
+        sync: false
+      - key: WORKER_API_KEY
+        sync: false
+      - key: ADMIN_KEY
+        sync: false
+      - key: TOTP_SECRET
+        sync: false
+      # Empty = dashboard hits the API on the same origin (no CORS, no extra URL)
+      - key: VITE_API_BASE_URL
+        value: ""
+
+    # Build only needs to compile the dashboard (browsers can't run TS/JSX).
+    # The API server runs its TS source directly via `tsx` — no compile.
+    buildCommand: |
+      corepack enable
+      corepack prepare pnpm@9 --activate
+      pnpm install --frozen-lockfile=false
+      pnpm run build:render
+
+    startCommand: pnpm run start:render
+
+    healthCheckPath: /api/healthz
+
+databases: []
